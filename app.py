@@ -3,7 +3,9 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
+# Generator architecture (same as training)
 class Generator(nn.Module):
     def __init__(self, latent_dim=100, num_classes=10):
         super().__init__()
@@ -26,11 +28,15 @@ class Generator(nn.Module):
 @st.cache_resource
 def load_generator():
     model = Generator()
-    model.load_state_dict(torch.load('models/cgan_generator.pth', map_location='cpu'))
+    model_path = "models/cgan_generator.pth"
+    if not os.path.exists(model_path):
+        st.error("Model file not found. Please upload cgan_generator.pth to the models/ directory.")
+        st.stop()
+    model.load_state_dict(torch.load(model_path, map_location='cpu'))
     model.eval()
     return model
 
-# Generate digit
+# Generate digit images
 def generate_digit(model, digit, num_images=5):
     z = torch.randn(num_images, 100)
     labels = torch.tensor([digit] * num_images)
@@ -38,13 +44,16 @@ def generate_digit(model, digit, num_images=5):
         imgs = model(z, labels).squeeze().numpy()
     return imgs
 
-# UI
-st.title("Handwritten Digit Generator")
-digit = st.selectbox("Choose a digit to generate (0-9):", list(range(10)))
-model = load_generator()
-images = generate_digit(model, int(digit))
+# Streamlit UI
+st.title("🧠 Handwritten Digit Generator (0–9)")
+st.write("This app uses a Conditional GAN trained on MNIST to generate handwritten digits.")
 
-# Display images
+digit = st.selectbox("Select a digit to generate:", list(range(10)))
+model = load_generator()
+images = generate_digit(model, int(digit), num_images=5)
+
+# Display generated images
+st.subheader(f"Generated images of digit {digit}")
 fig, axs = plt.subplots(1, 5, figsize=(10, 2))
 for i in range(5):
     axs[i].imshow(images[i], cmap="gray")
